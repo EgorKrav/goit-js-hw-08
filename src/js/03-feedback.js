@@ -1,40 +1,48 @@
-const form = document.querySelector('.feedback-form');
-const emailInput = form.querySelector('input[name="email"]');
-const messageInput = form.querySelector('textarea[name="message"]');
+import throttle from 'lodash.throttle';
 
-const saveFormState = _.throttle(() => {
-  const formState = {
-    email: emailInput.value,
-    message: messageInput.value,
-  };
-  localStorage.setItem('feedback-form-state', JSON.stringify(formState));
-}, 500);
+const form = document.querySelector('.feedback-form');
+const inputs = form.querySelectorAll('input, textarea');
+
+const STORAGE_KEY = 'feedback-form-state';
+
+const saveFormState = () => {
+  const state = {};
+  inputs.forEach(input => {
+    state[input.name] = input.value;
+  });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+};
 
 const loadFormState = () => {
-  const formState = JSON.parse(
-    localStorage.getItem('feedback-form-state') || '{}'
-  );
-  emailInput.value = formState.email || '';
-  messageInput.value = formState.message || '';
+  const stateJSON = localStorage.getItem(STORAGE_KEY);
+  if (stateJSON) {
+    const state = JSON.parse(stateJSON);
+    inputs.forEach(input => {
+      input.value = state[input.name] || '';
+    });
+  }
 };
 
 const clearFormState = () => {
-  localStorage.removeItem('feedback-form-state');
-  emailInput.value = '';
-  messageInput.value = '';
+  localStorage.removeItem(STORAGE_KEY);
+  inputs.forEach(input => {
+    input.value = '';
+  });
 };
 
-emailInput.addEventListener('input', saveFormState);
-messageInput.addEventListener('input', saveFormState);
-
-window.addEventListener('load', loadFormState);
-
-form.addEventListener('submit', event => {
+const handleSubmit = event => {
   event.preventDefault();
-  const formState = {
-    email: emailInput.value,
-    message: messageInput.value,
-  };
-  console.log(formState);
+  const state = {};
+  inputs.forEach(input => {
+    state[input.name] = input.value;
+  });
+  console.log(state);
   clearFormState();
-});
+};
+
+form.addEventListener('submit', handleSubmit);
+
+const throttledSaveFormState = throttle(saveFormState, 500);
+form.addEventListener('input', throttledSaveFormState);
+
+loadFormState();
